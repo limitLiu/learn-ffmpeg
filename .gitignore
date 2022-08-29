@@ -1,0 +1,7 @@
+.idea/*
+.cache/*
+build/*
+cmake-build-debug/*
+.DS_Store
+resources/*.pcm
+resources/*.wav
