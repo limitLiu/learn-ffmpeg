@@ -10,6 +10,8 @@ extern "C" {
 
 #include <libavdevice/avdevice.h>
 #include <libavutil/avutil.h>
+#include <libswresample/swresample.h>
+#include <libavcodec/avcodec.h>
 
 #ifdef __cplusplus
 };
@@ -40,6 +42,6 @@ static void log_error(int code) {
   av_log(nullptr, AV_LOG_ERROR, "%s\n", buf);
 }
 
-using Byte = Uint8;
+using Byte = uint8_t;
 
 #endif // PLAYER_COMMON_H

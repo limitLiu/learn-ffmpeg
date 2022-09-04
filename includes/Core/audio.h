@@ -5,6 +5,8 @@
 
 namespace Player {
 struct Spec;
+struct ResampleAudioSpec;
+
 struct AudioBuffer {
   size_t len = 0;
   size_t pullSize = 0;
@@ -24,6 +26,11 @@ public:
     FormatS16 = FormatS16LSB,
     FormatF32LSB = AUDIO_F32LSB,
     FormatF32MSB [[maybe_unused]] = AUDIO_F32MSB,
+  };
+
+  enum AudioFmt {
+    FmtS16 = AV_SAMPLE_FMT_S16,
+    FmtFlt = AV_SAMPLE_FMT_FLT,
   };
 
   Audio();
@@ -48,6 +55,7 @@ public:
 
   [[maybe_unused]] void setFormat(AudioFormat format);
   [[nodiscard]] AudioFormat format() const;
+  [[nodiscard]] AudioFmt fmt() const;
 
   [[maybe_unused]] void setChannels(int channels) const;
   [[nodiscard]] int channels() const;
@@ -56,6 +64,16 @@ public:
   [[nodiscard]] int samples() const;
 
   [[nodiscard]] Spec *spec() const;
+
+  void resample() const;
+
+  static void resample(const std::string &inputName, int inputSampleRate,
+                       AVSampleFormat inputFmt, AVChannelLayout inputChLayout,
+                       const std::string &outputName, int outputSampleRate,
+                       AVSampleFormat outputFmt,
+                       AVChannelLayout outputChLayout);
+
+  static void resample(ResampleAudioSpec &input, ResampleAudioSpec &output);
 
 private:
   void run();
@@ -75,8 +93,10 @@ private:
 
 #ifdef _WIN32
   AudioFormat format_ = FormatS16;
+  AudioFmt fmt_ = FmtS16;
 #elif __APPLE__
   AudioFormat format_ = FormatF32LSB;
+  AudioFmt fmt_ = FmtFlt;
 #endif
 };
 

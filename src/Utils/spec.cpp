@@ -17,3 +17,8 @@ Player::Spec::Spec(AVFormatContext *ctx) {
     bitsPerSample = av_get_bits_per_sample(codecID);
   }
 }
+
+void Player::Spec::setCodecID(AVCodecID codecId) {
+  codecID = codecId;
+  bitsPerSample = av_get_bits_per_sample(codecID);
+}

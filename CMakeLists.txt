@@ -21,10 +21,9 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_TTF REQUIRED)
-find_package(SDL2_MIXER REQUIRED)
+find_package(SDL2_IMAGE REQUIRED)
 
 include_directories(${SDL2_IMAGE_INCLUDE_DIR})
-include_directories(${SDL2_MIXER_INCLUDE_DIR})
 include_directories(${SDL2_TTF_INCLUDE_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/includes")
 
@@ -37,4 +36,4 @@ file(GLOB SOURCE
         )
 add_executable(player ${SOURCE})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::FFMPEG SDL2::SDL2 ${SDL2_TTF_LIBRARY} ${SDL2_MIXER_LIBRARY} ${SDL2_IMAGE_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::FFMPEG SDL2::SDL2 ${SDL2_TTF_LIBRARY} ${SDL2_IMAGE_LIBRARY})

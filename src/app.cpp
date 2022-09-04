@@ -66,7 +66,9 @@ void Player::App::handleKeydown() {
     }
     break;
   case SDLK_h:
-    printf("left %d\n", SDLK_h);
+    if (audio_) {
+      audio_->resample();
+    }
     break;
   case SDLK_l:
     printf("right %d\n", SDLK_l);
