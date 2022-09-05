@@ -59,7 +59,6 @@ public:
 
   [[maybe_unused]] void setFormat(AudioFormat format);
   [[nodiscard]] AudioFormat format() const;
-  [[nodiscard]] AudioFmt fmt() const;
 
   [[maybe_unused]] void setChannels(int channels) const;
   [[nodiscard]] int channels() const;

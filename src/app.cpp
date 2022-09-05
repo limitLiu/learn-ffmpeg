@@ -24,7 +24,7 @@ void Player::App::init() {
   }
 
   if (!recorder_) {
-    recorder_ = new Recorder("../resources/out.pcm");
+    recorder_ = new Recorder();
   }
 
   if (!audio_) {
@@ -62,6 +62,7 @@ void Player::App::handleKeydown() {
     break;
   case SDLK_j:
     if (recorder_) {
+      recorder_->setFilename("../resources/out.pcm");
       recorder_->record();
     }
     break;
@@ -74,6 +75,12 @@ void Player::App::handleKeydown() {
     if (audio_) {
       audio_->setFilename("../resources/out.wav");
       audio_->playWAV();
+    }
+    break;
+  case SDLK_SPACE:
+    if (recorder_) {
+      recorder_->setFilename("../resources/out.wav");
+      recorder_->recordWAV();
     }
     break;
   default:

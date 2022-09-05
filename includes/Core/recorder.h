@@ -15,6 +15,8 @@ public:
 
   [[maybe_unused]] void record();
 
+  void recordWAV();
+
   void stop();
 
   void setFilename(const std::string &filename);
@@ -30,6 +32,10 @@ private:
   void write();
 
   void init();
+
+  void deinit();
+
+  void writeWAV();
 
 private:
   std::string filename_;

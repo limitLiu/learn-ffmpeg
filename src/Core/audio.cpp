@@ -28,8 +28,7 @@ Player::Audio::~Audio() { deletePtr(&spec_); }
   init();
 }
 
-[[maybe_unused]] Player::Audio::Audio(const std::string &name,
-                                      AVFormatContext *ctx) {
+[[maybe_unused]] Player::Audio::Audio(const std::string &name, AVFormatContext *ctx) {
   setFilename(name);
   initWithFormatContext(ctx);
 }
@@ -38,9 +37,7 @@ Player::Audio::Audio(AVFormatContext *ctx) { initWithFormatContext(ctx); }
 
 void Player::Audio::init() { spec_ = new Spec(); }
 
-void Player::Audio::initWithFormatContext(AVFormatContext *ctx) {
-  spec_ = new Spec(ctx);
-}
+void Player::Audio::initWithFormatContext(AVFormatContext *ctx) { spec_ = new Spec(ctx); }
 
 std::string Player::Audio::filename() const { return filename_; }
 
@@ -109,8 +106,7 @@ void Player::Audio::runWAV() {
     if (audioBuffer.len) {
       continue;
     }
-    audioBuffer.len =
-        input.read(reinterpret_cast<char *>(buffer), bufferSize()).gcount();
+    audioBuffer.len = input.read(reinterpret_cast<char *>(buffer), bufferSize()).gcount();
     if (audioBuffer.len < 1) {
       auto ms = audioBuffer.pullSize / bytesPerSample / spec.freq;
       SDL_Delay(ms * 1000);
@@ -169,8 +165,7 @@ bool Player::Audio::parseWAV(SDL_AudioSpec &spec, std::ifstream &input) const {
   numChannels = BIG_2_LITTLE(uint16_t, header[22], header[23]);
   spec.channels = numChannels;
 
-  sampleRate =
-      BIG_2_LITTLE(uint32_t, header[24], header[25], header[26], header[27]);
+  sampleRate = BIG_2_LITTLE(uint32_t, header[24], header[25], header[26], header[27]);
   spec.freq = (int)sampleRate;
 
   bitsPerSample = BIG_2_LITTLE(uint16_t, header[34], header[35]);
@@ -182,8 +177,7 @@ end:
   return success;
 }
 
-SDL_AudioFormat Player::Audio::getSDLFormat(uint16_t audioFormat,
-                                            uint16_t bitsPerSample,
+SDL_AudioFormat Player::Audio::getSDLFormat(uint16_t audioFormat, uint16_t bitsPerSample,
                                             bool &success) {
   SDL_AudioFormat format = 0;
   switch (audioFormat) {
@@ -254,8 +248,7 @@ void Player::Audio::run() {
     if (audioBuffer.len) {
       continue;
     }
-    audioBuffer.len =
-        input.read(reinterpret_cast<char *>(buffer), bufferSize()).gcount();
+    audioBuffer.len = input.read(reinterpret_cast<char *>(buffer), bufferSize()).gcount();
     if (audioBuffer.len < 1) {
       auto ms = audioBuffer.pullSize / bytesPerSample() / spec.freq;
       SDL_Delay(ms * 1000);
@@ -281,8 +274,7 @@ int Player::Audio::samples() const { return spec()->samples; }
   spec()->sampleRate = sampleRate;
 }
 
-[[maybe_unused]] void
-Player::Audio::setFormat(Player::Audio::AudioFormat format) {
+[[maybe_unused]] void Player::Audio::setFormat(Player::Audio::AudioFormat format) {
   format_ = format;
 }
 
@@ -290,9 +282,7 @@ Player::Audio::setFormat(Player::Audio::AudioFormat format) {
   spec()->channels = channels;
 }
 
-[[maybe_unused]] void Player::Audio::setSamples(int samples) const {
-  spec()->samples = samples;
-}
+[[maybe_unused]] void Player::Audio::setSamples(int samples) const { spec()->samples = samples; }
 
 int Player::Audio::bufferSize() { return samples() * bytesPerSample(); }
 
@@ -305,11 +295,9 @@ int Player::Audio::bytesPerSample() const {
 Player::Spec *Player::Audio::spec() const { return spec_; }
 
 void Player::Audio::resample(const std::string &inputName, int inputSampleRate,
-                             AVSampleFormat inputFmt,
-                             AVChannelLayout inputChLayout,
-                             const std::string &outputName,
-                             int outputSampleRate, AVSampleFormat outputFmt,
-                             AVChannelLayout outputChLayout) {
+                             AVSampleFormat inputFmt, AVChannelLayout inputChLayout,
+                             const std::string &outputName, int outputSampleRate,
+                             AVSampleFormat outputFmt, AVChannelLayout outputChLayout) {
   std::ifstream input;
   std::ofstream output;
 
@@ -332,15 +320,13 @@ void Player::Audio::resample(const std::string &inputName, int inputSampleRate,
   Byte **outputData = nullptr;
   int outputLinesize = 0;
   int outputChannels = outputChLayout.nb_channels;
-  int outputSamples = (int)av_rescale_rnd(outputSampleRate, inputSamples,
-                                          inputSampleRate, AV_ROUND_UP);
-  int outputBytesPerSample =
-      outputChannels * av_get_bytes_per_sample(outputFmt);
+  int outputSamples =
+      (int)av_rescale_rnd(outputSampleRate, inputSamples, inputSampleRate, AV_ROUND_UP);
+//  int outputBytesPerSample = outputChannels * av_get_bytes_per_sample(outputFmt);
   int len;
   SwrContext *ctx = nullptr;
-  int ret = swr_alloc_set_opts2(&ctx, &outputChLayout, outputFmt,
-                                outputSampleRate, &inputChLayout, inputFmt,
-                                inputSampleRate, 0, nullptr);
+  int ret = swr_alloc_set_opts2(&ctx, &outputChLayout, outputFmt, outputSampleRate, &inputChLayout,
+                                inputFmt, inputSampleRate, 0, nullptr);
   if (ret < 0) {
     log_error(ret);
     goto end;
@@ -351,41 +337,36 @@ void Player::Audio::resample(const std::string &inputName, int inputSampleRate,
     goto end;
   }
 
-  ret = av_samples_alloc_array_and_samples(
-      &inputData, &inputLinesize, inputChannels, inputSamples, inputFmt, 1);
+  ret = av_samples_alloc_array_and_samples(&inputData, &inputLinesize, inputChannels, inputSamples,
+                                           inputFmt, 1);
 
   if (ret < 0) {
     log_error(ret);
     goto end;
   }
 
-  ret = av_samples_alloc_array_and_samples(&outputData, &outputLinesize,
-                                           outputChannels, outputSamples,
-                                           outputFmt, 1);
+  ret = av_samples_alloc_array_and_samples(&outputData, &outputLinesize, outputChannels,
+                                           outputSamples, outputFmt, 1);
 
   if (ret < 0) {
     log_error(ret);
     goto end;
   }
 
-  while ((len = (int)input.read((char *)inputData[0], inputLinesize).gcount()) >
-         0) {
+  while ((len = (int)input.read((char *)inputData[0], inputLinesize).gcount()) > 0) {
     inputSamples = len / inputBytesPerSample;
-    ret = swr_convert(ctx, outputData, outputSamples,
-                      (const uint8_t **)inputData, inputSamples);
+    ret = swr_convert(ctx, outputData, outputSamples, (const uint8_t **)inputData, inputSamples);
     if (ret < 0) {
       log_error(ret);
       goto end;
     }
 
-    int size =
-        av_samples_get_buffer_size(nullptr, outputChannels, ret, outputFmt, 1);
+    int size = av_samples_get_buffer_size(nullptr, outputChannels, ret, outputFmt, 1);
     output.write((char *)outputData[0], size);
   }
 
   while ((ret = swr_convert(ctx, outputData, outputSamples, nullptr, 0)) > 0) {
-    int size =
-        av_samples_get_buffer_size(nullptr, outputChannels, ret, outputFmt, 1);
+    int size = av_samples_get_buffer_size(nullptr, outputChannels, ret, outputFmt, 1);
     output.write((char *)outputData[0], size);
   }
 
@@ -406,11 +387,9 @@ end:
   swr_free(&ctx);
 }
 
-void Player::Audio::resample(Player::ResampleAudioSpec &input,
-                             Player::ResampleAudioSpec &output) {
-  resample(input.filename, input.sampleRate, input.fmt, input.channelLayout,
-           output.filename, output.sampleRate, output.fmt,
-           output.channelLayout);
+void Player::Audio::resample(Player::ResampleAudioSpec &input, Player::ResampleAudioSpec &output) {
+  resample(input.filename, input.sampleRate, input.fmt, input.channelLayout, output.filename,
+           output.sampleRate, output.fmt, output.channelLayout);
 }
 
 void Player::Audio::resample() const {
@@ -418,7 +397,7 @@ void Player::Audio::resample() const {
   ResampleAudioSpec output;
 
   input.filename = "../resources/out.pcm";
-  input.fmt = static_cast<AVSampleFormat>(fmt());
+  input.fmt = static_cast<AVSampleFormat>(fmt_);
   input.sampleRate = 48000;
   input.channelLayout = AV_CHANNEL_LAYOUT_MONO;
 
@@ -440,5 +419,3 @@ void Player::Audio::resample() const {
   p.replace_extension("wav");
   Player::Recorder::pcm2Wav(header, output.filename, p.string());
 }
-
-Player::Audio::AudioFmt Player::Audio::fmt() const { return fmt_; }
