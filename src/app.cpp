@@ -71,7 +71,10 @@ void Player::App::handleKeydown() {
     }
     break;
   case SDLK_l:
-    printf("right %d\n", SDLK_l);
+    if (audio_) {
+      audio_->setFilename("../resources/out.wav");
+      audio_->playWAV();
+    }
     break;
   default:
     break;

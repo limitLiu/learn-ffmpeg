@@ -50,6 +50,10 @@ public:
 
   void play();
 
+  void stop();
+
+  void playWAV();
+
   [[maybe_unused]] void setSampleRate(int sampleRate) const;
   [[nodiscard]] int sampleRate() const;
 
@@ -78,6 +82,10 @@ public:
 private:
   void run();
 
+  void runWAV();
+
+  bool parseWAV(SDL_AudioSpec &spec, std::ifstream &input) const;
+
   [[nodiscard]] int bufferSize();
 
   [[nodiscard]] int bytesPerSample() const;
@@ -90,6 +98,11 @@ private:
   std::string filename_;
 
   Spec *spec_ = nullptr;
+
+  std::atomic<bool> playing_{false};
+
+  static SDL_AudioFormat getSDLFormat(uint16_t audioFormat,
+                                      uint16_t bitsPerSample, bool &success);
 
 #ifdef _WIN32
   AudioFormat format_ = FormatS16;

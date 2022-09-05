@@ -1,10 +1,6 @@
 #include "Utils/header.h"
 #include "Utils/spec.h"
 
-Player::Header::Header() = default;
-
-Player::Header::~Header() = default;
-
 Player::Header::Header(Player::Spec &spec) {
   numChannels = spec.channels;
   sampleRate = spec.sampleRate;

@@ -21,11 +21,11 @@ struct Header {
   [[maybe_unused]] const Uint8 subChunk2ID[4] = {'d', 'a', 't', 'a'};
   Uint32 dataSize = 0;
 
-  Header();
+  Header() = default;
 
   Header(Spec &spec);
 
-  ~Header();
+  ~Header() = default;
 };
 } // namespace Player
 
