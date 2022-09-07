@@ -67,8 +67,9 @@ void Player::App::handleKeydown() {
     }
     break;
   case SDLK_h:
-    if (audio_) {
-      audio_->resample();
+    if (recorder_) {
+      recorder_->resample();
+      Player::Recorder::pcm2AAC();
     }
     break;
   case SDLK_l:

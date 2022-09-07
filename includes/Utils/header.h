@@ -23,7 +23,7 @@ struct Header {
 
   Header() = default;
 
-  Header(Spec &spec);
+  explicit Header(Spec &spec);
 
   ~Header() = default;
 };

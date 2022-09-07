@@ -6,4 +6,5 @@
 
 ## 目录
 
+[安装 FFmpeg](./docs/install-ffmpeg.md)  
 [FFmpeg 命令](./docs/ffmpeg-command-line.md)  
