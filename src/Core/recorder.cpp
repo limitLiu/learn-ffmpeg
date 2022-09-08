@@ -1,79 +1,75 @@
+#include "Core/recorder.h"
 #include "Utils/header.h"
 #include "Utils/spec.h"
+
 #include <fstream>
 #include <iostream>
 #include <thread>
 
 namespace fs = std::filesystem;
 
-Player::Recorder::Recorder() { init(); }
+[[maybe_unused]] Player::Recorder::Recorder(const std::string &filename) { setFilename(filename); }
 
-[[maybe_unused]] Player::Recorder::Recorder(const std::string &filename) {
-  setFilename(filename);
-  init();
-}
-
-void Player::Recorder::init() {
+bool Player::Recorder::openDevice(const char *device, AVDictionary **opts) {
   auto fmt = av_find_input_format(FMT_NAME);
   if (!fmt) {
-    av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to call av_find_input_format.");
-    return;
+    av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to call av_find_input_format");
+    return false;
   }
-  const char *device = DEVICE_NAME;
-  int ret = avformat_open_input(&ctx_, device, fmt, nullptr);
+  int ret = avformat_open_input(&ctx_, device, fmt, opts);
   if (ret < 0) {
     log_error(ret);
-    return;
+    return false;
   }
+  return true;
 }
 
-void Player::Recorder::deinit() { avformat_close_input(&ctx_); }
-
-Player::Recorder::~Recorder() { deinit(); }
+void Player::Recorder::closeDevice() { avformat_close_input(&ctx_); }
 
 // ffmpeg -hide_banner -f avfoundation -i :1 out.wav
-[[maybe_unused]] void Player::Recorder::record() {
+[[maybe_unused]] void Player::Recorder::recordAudio() {
   if (recording_) {
     stop();
     return;
   }
-  std::thread writeThread(&Player::Recorder::write, this);
+  std::thread writeThread(&Player::Recorder::writePCM, this);
   writeThread.detach();
 }
 
-void Player::Recorder::write() {
+void Player::Recorder::writePCM() {
   if (filename().empty()) {
     return;
   }
 
-  AVPacket pkt;
   std::ofstream file;
   file.open(filename(), std::ios::binary);
   if (!file.is_open()) {
     return;
   }
-  recording_ = true;
+  auto pkt = av_packet_alloc();
+  if (!pkt) {
+    goto end;
+  }
   int ret;
+  recording_ = openDevice(AUDIO_DEVICE_NAME);
   while (recording_) {
-    ret = av_read_frame(context(), &pkt);
+    ret = av_read_frame(context(), pkt);
     if (ret == 0) {
-      file.write(reinterpret_cast<const char *>(pkt.data), pkt.size);
+      file.write(reinterpret_cast<const char *>(pkt->data), pkt->size);
+      av_packet_unref(pkt);
     } else if (ret == AVERROR(EAGAIN)) {
       continue;
     } else {
       log_error(ret);
-      break;
+      goto end;
     }
-    av_packet_unref(&pkt);
   }
+
+end:
   file.flush();
   file.close();
-
-  Spec spec(context());
-  Header header(spec);
-  fs::path p(filename());
-  header.dataSize = file_size(p);
-  pcm2Wav(header, filename(), p.replace_extension("wav").string());
+  av_packet_free(&pkt);
+  closeDevice();
   stop();
 }
 
@@ -125,43 +121,51 @@ void Player::Recorder::writeWAV() {
     return;
   }
 
-  AVPacket pkt;
   std::ofstream file;
   file.open(filename(), std::ios::binary);
   if (!file.is_open()) {
+    av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to open file");
     return;
   }
+
+  recording_ = openDevice(AUDIO_DEVICE_NAME);
   Spec spec(context());
   Header header(spec);
+  fs::path f(filename());
   file.write(reinterpret_cast<const char *>(&header), sizeof(Header));
-  recording_ = true;
   int ret;
+  auto pkt = av_packet_alloc();
+  if (!pkt) {
+    av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to call av_packet_alloc");
+    goto end;
+  }
   while (recording_) {
-    ret = av_read_frame(context(), &pkt);
+    ret = av_read_frame(context(), pkt);
     if (ret == 0) {
-      file.write(reinterpret_cast<const char *>(pkt.data), pkt.size);
-      header.dataSize += pkt.size;
+      file.write(reinterpret_cast<const char *>(pkt->data), pkt->size);
+      header.dataSize += pkt->size;
       auto ms = 1000.0 * header.dataSize / header.byteRate;
       std::cout << ms << std::endl;
+      av_packet_unref(pkt);
     } else if (ret == AVERROR(EAGAIN)) {
       continue;
     } else {
       log_error(ret);
-      break;
+      goto end;
     }
-    av_packet_unref(&pkt);
   }
-  fs::path f(filename());
   file.seekp(sizeof(Header) - sizeof(header.dataSize));
   file.write(reinterpret_cast<const char *>(&header.dataSize), sizeof(header.dataSize));
-
   header.chunkSize = file_size(f) - sizeof(header.chunkID) - sizeof(header.chunkSize);
   file.seekp(sizeof(header.chunkID));
   file.write(reinterpret_cast<const char *>(&header.chunkSize), sizeof(header.chunkSize));
 
+end:
   file.flush();
   file.close();
+  av_packet_free(&pkt);
   stop();
+  closeDevice();
 }
 
 void Player::Recorder::resample(const std::string &inputName, int inputSampleRate,
@@ -439,4 +443,59 @@ int Player::Recorder::encode(AVCodecContext *ctx, AVFrame *frame, AVPacket *pkt,
     av_packet_unref(pkt);
   }
   return ret;
+}
+
+// ffmpeg -hide_banner -f avfoundation -framerate 30 -pixel_format yuyv422 -i 0: out.yuv
+void Player::Recorder::recordVideo() {
+  if (recording_) {
+    stop();
+    return;
+  }
+  std::thread writeThread(&Player::Recorder::writeYUV, this);
+  writeThread.detach();
+}
+
+void Player::Recorder::writeYUV() {
+  if (filename().empty()) {
+    return;
+  }
+
+  std::ofstream file;
+  file.open(filename(), std::ios::binary);
+  if (!file.is_open()) {
+    return;
+  }
+  AVDictionary *opts = nullptr;
+  av_dict_set(&opts, "video_size", "640x480", 0);
+  av_dict_set(&opts, "pixel_format", "yuyv422", 0);
+  av_dict_set(&opts, "framerate", "30", 0);
+
+  recording_ = openDevice(VIDEO_DEVICE_NAME, &opts);
+  auto params = context()->streams[0]->codecpar;
+  int imageSize =
+      av_image_get_buffer_size((AVPixelFormat)params->format, params->width, params->height, 1);
+  int ret;
+  auto pkt = av_packet_alloc();
+  if (!pkt) {
+    goto end;
+  }
+  while (recording_) {
+    ret = av_read_frame(context(), pkt);
+    if (ret == 0) {
+      file.write(reinterpret_cast<const char *>(pkt->data), imageSize);
+      av_packet_unref(pkt);
+    } else if (ret == AVERROR(EAGAIN)) {
+      continue;
+    } else {
+      log_error(ret);
+      goto end;
+    }
+  }
+
+end:
+  av_packet_free(&pkt);
+  file.flush();
+  file.close();
+  closeDevice();
+  stop();
 }

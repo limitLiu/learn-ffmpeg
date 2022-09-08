@@ -6,3 +6,4 @@ cmake-build-debug/*
 resources/*.pcm
 resources/*.wav
 resources/*.aac
+resources/*.yuv

@@ -15,13 +15,15 @@ public:
     FmtFlt = AV_SAMPLE_FMT_FLT,
   };
 
-  Recorder();
+  Recorder() = default;
 
   [[maybe_unused]] explicit Recorder(const std::string &filename);
 
-  ~Recorder();
+  ~Recorder() = default;
 
-  [[maybe_unused]] void record();
+  [[maybe_unused]] void recordAudio();
+
+  void recordVideo();
 
   void recordWAV();
 
@@ -49,12 +51,14 @@ public:
 
   static void pcm2AAC();
 
+  bool openDevice(const char *device, AVDictionary **opts = nullptr);
+
+  void closeDevice();
+
 private:
-  void write();
+  void writePCM();
 
-  void init();
-
-  void deinit();
+  void writeYUV();
 
   void writeWAV();
 

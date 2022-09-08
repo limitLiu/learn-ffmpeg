@@ -28,7 +28,9 @@ void Player::App::init() {
   }
 
   if (!audio_) {
+    recorder_->openDevice(AUDIO_DEVICE_NAME);
     audio_ = new Audio(recorder_->context());
+    recorder_->closeDevice();
   }
   running_ = window_->inited;
 }
@@ -62,14 +64,17 @@ void Player::App::handleKeydown() {
     break;
   case SDLK_j:
     if (recorder_) {
-      recorder_->setFilename("../resources/out.pcm");
-      recorder_->record();
+//      recorder_->setFilename("../resources/out.pcm");
+//      recorder_->recordAudio();
+
+      recorder_->setFilename("../resources/out.yuv");
+      recorder_->recordVideo();
     }
     break;
   case SDLK_h:
     if (recorder_) {
-//      recorder_->resample();
-//      Player::Recorder::pcm2AAC();
+      recorder_->resample();
+      Player::Recorder::pcm2AAC();
       Player::Audio::decodeAAC();
     }
     break;

@@ -10,6 +10,7 @@ extern "C" {
 
 #include <libavdevice/avdevice.h>
 #include <libavutil/avutil.h>
+#include <libavutil/imgutils.h>
 #include <libswresample/swresample.h>
 #include <libavcodec/avcodec.h>
 
@@ -25,7 +26,8 @@ extern "C" {
 #elif __APPLE__
 
 #define FMT_NAME ("avfoundation")
-#define DEVICE_NAME ":1"
+#define AUDIO_DEVICE_NAME ":1"
+#define VIDEO_DEVICE_NAME "0:"
 
 #endif
 
