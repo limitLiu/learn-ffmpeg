@@ -1,4 +1,6 @@
+#include "Core/audio.h"
 #include "Utils/spec.h"
+
 #include <filesystem>
 #include <iostream>
 #include <thread>
@@ -10,6 +12,8 @@
 #define ALAW_CODE 0x0006
 #define MULAW_CODE 0x0007
 #define IMA_ADPCM_CODE 0x0011
+
+#define AUDIO_INBUF_SIZE 20480
 
 // (header[3] << 24) | (header[2] << 16) | (header[1] << 8) | header[0];
 #define BIG_2_LITTLE(dstType, ...) (*(dstType *)((Byte[]){__VA_ARGS__}))
@@ -290,3 +294,159 @@ int Player::Audio::bytesPerSample() const {
 }
 
 Player::Spec *Player::Audio::spec() const { return spec_; }
+
+void Player::Audio::decodeAAC() {
+  auto name = "../resources/resample.aac";
+  ResampleAudioSpec spec;
+  spec.filename = "../resources/resample1.pcm";
+  decodeAAC(name, spec);
+}
+
+void Player::Audio::decodeAAC(const std::string &name, Player::ResampleAudioSpec &spec) {
+  std::ifstream input;
+  input.open(name);
+  if (!input.is_open()) {
+    return;
+  }
+  std::ofstream output;
+  output.open(spec.filename);
+  if (!output.is_open()) {
+    return;
+  }
+
+  bool end = false;
+  Byte buffer[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
+  Byte *readBuffer = buffer;
+  int readLength = 0;
+  int ret = 0;
+  AVCodecContext *ctx = nullptr;
+  AVCodecParserContext *parserCtx = nullptr;
+  AVPacket *pkt = nullptr;
+  AVFrame *frame = nullptr;
+
+  auto decoderName = "libfdk_aac";
+  const AVCodec *codec = avcodec_find_decoder_by_name(decoderName);
+  if (!codec) {
+    av_log(nullptr, AV_LOG_ERROR, "Can not find decoder by %s\n", decoderName);
+    return;
+  }
+
+  parserCtx = av_parser_init(codec->id);
+  if (!parserCtx) {
+    av_log(nullptr, AV_LOG_ERROR, "Failed to call av_parser_init\n");
+    return;
+  }
+
+  ctx = avcodec_alloc_context3(codec);
+  if (!ctx) {
+    av_log(nullptr, AV_LOG_ERROR, "Failed to call avcodec_alloc_context3\n");
+    goto end;
+  }
+
+  pkt = av_packet_alloc();
+  if (!pkt) {
+    av_log(nullptr, AV_LOG_ERROR, "Failed to call av_packet_alloc\n");
+    goto end;
+  }
+
+  frame = av_frame_alloc();
+  if (!frame) {
+    av_log(nullptr, AV_LOG_ERROR, "Failed to call av_frame_alloc\n");
+    goto end;
+  }
+
+  ret = avcodec_open2(ctx, codec, nullptr);
+  if (ret < 0) {
+    log_error(ret);
+    goto end;
+  }
+
+//  readLength = (int)input.read(reinterpret_cast<char *>(readBuffer), AUDIO_INBUF_SIZE).gcount();
+//  while (readLength > 0) {
+//    ret = av_parser_parse2(parserCtx, ctx, &pkt->data, &pkt->size, readBuffer, readLength,
+//                           AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+//    if (ret < 0) {
+//      log_error(ret);
+//      goto end;
+//    }
+//
+//    // skip parsed
+//    readBuffer += ret;
+//    readLength -= ret;
+//
+//    // decode
+//    if (pkt->size > 0 && decode(ctx, pkt, frame, output) < 0) {
+//      goto end;
+//    }
+//
+//    if (readLength < 4096 && !end) {
+//      memmove(buffer, readBuffer, readLength);
+//      readBuffer = buffer;
+//      int len = (int)input
+//                    .read(reinterpret_cast<char *>(readBuffer + readLength),
+//                          AUDIO_INBUF_SIZE - readLength)
+//                    .gcount();
+//      if (len > 0) {
+//        readLength += len;
+//      } else {
+//        end = true;
+//      }
+//    }
+//  }
+
+    while ((readLength =
+                (int)input.read(reinterpret_cast<char *>(buffer), AUDIO_INBUF_SIZE).gcount())
+                >
+           0) {
+      readBuffer = buffer;
+      while (readLength > 0) {
+        ret = av_parser_parse2(parserCtx, ctx, &pkt->data, &pkt->size, readBuffer, readLength,
+                               AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+        if (ret < 0) {
+          log_error(ret);
+          goto end;
+        }
+        readBuffer += ret;
+        readLength -= ret;
+        if (pkt->size > 0 && decode(ctx, pkt, frame, output) < 0) {
+          goto end;
+        }
+      }
+    }
+
+  pkt->data = nullptr;
+  pkt->size = 0;
+  decode(ctx, pkt, frame, output);
+
+  spec.sampleRate = ctx->sample_rate;
+  spec.fmt = ctx->sample_fmt;
+  spec.channelLayout = ctx->ch_layout;
+
+end:
+  input.close();
+  output.close();
+  av_packet_free(&pkt);
+  av_frame_free(&frame);
+  av_parser_close(parserCtx);
+  avcodec_free_context(&ctx);
+}
+
+int Player::Audio::decode(AVCodecContext *ctx, AVPacket *pkt, AVFrame *frame,
+                          std::ofstream &output) {
+  int ret = avcodec_send_packet(ctx, pkt);
+  if (ret < 0) {
+    log_error(ret);
+    return ret;
+  }
+  while (true) {
+    ret = avcodec_receive_frame(ctx, frame);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+      return 0;
+    } else if (ret < 0) {
+      log_error(ret);
+      break;
+    }
+    output.write(reinterpret_cast<const char *>(frame->data[0]), frame->linesize[0]);
+  }
+  return ret;
+}

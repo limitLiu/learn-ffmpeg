@@ -95,7 +95,7 @@ ffmpeg -hide_banner -ar 44100 -ac 2 -f s16le -i ./output.pcm -c:a libfdk_aac out
 ffmpeg -hide_banner -ar 44100 -ac 2 -f s16le -i ./output.pcm -c:a libfdk_aac -profile:a aac_he_v2 -b:a 32k output.aac
 ```
 
-**libfdk_aac** 还支持使用一些自定义的选项，譬如 vbr 模式压缩，
+**libfdk_aac** 还支持使用一些自定义的选项，譬如 vbr 模式压缩
 
 ```bash
 ffmpeg -hide_banner -ar 44100 -ac 2 -f s16le -i ./output.pcm -c:a libfdk_aac -vbr 5 output.aac

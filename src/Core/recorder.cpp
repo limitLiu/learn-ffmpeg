@@ -304,7 +304,7 @@ bool Player::Recorder::checkSampleFmt(const AVCodec *codec, AVSampleFormat fmt) 
 
 void Player::Recorder::pcm2AAC(Player::ResampleAudioSpec &spec, std::string aacFilename) {
   std::ifstream input;
-  input.open(spec.filename);
+  input.open(spec.filename, std::ios::binary);
   if (!input.is_open()) {
     av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to open input file");
     return;
@@ -316,7 +316,7 @@ void Player::Recorder::pcm2AAC(Player::ResampleAudioSpec &spec, std::string aacF
   }
 
   std::ofstream output;
-  output.open(aacFilename);
+  output.open(aacFilename, std::ios::binary);
   if (!output.is_open()) {
     av_log(nullptr, AV_LOG_ERROR, "%s\n", "Failed to open output file");
     return;
@@ -327,10 +327,11 @@ void Player::Recorder::pcm2AAC(Player::ResampleAudioSpec &spec, std::string aacF
   AVPacket *pkt = nullptr;
   int ret;
 
+  auto encoderName = "libfdk_aac";
   //  avcodec_find_encoder(AV_CODEC_ID_AAC);
-  const AVCodec *codec = avcodec_find_encoder_by_name("libfdk_aac");
+  const AVCodec *codec = avcodec_find_encoder_by_name(encoderName);
   if (!codec) {
-    av_log(nullptr, AV_LOG_ERROR, "%s\n", "Can not find encoder");
+    av_log(nullptr, AV_LOG_ERROR, "Can not find encoder by %s\n", encoderName);
     return;
   }
 
@@ -431,6 +432,7 @@ int Player::Recorder::encode(AVCodecContext *ctx, AVFrame *frame, AVPacket *pkt,
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
       return 0;
     } else if (ret < 0) {
+      log_error(ret);
       break;
     }
     output.write(reinterpret_cast<const char *>(pkt->data), pkt->size);

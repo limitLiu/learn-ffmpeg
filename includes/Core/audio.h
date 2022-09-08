@@ -5,6 +5,7 @@
 
 namespace Player {
 struct Spec;
+struct ResampleAudioSpec;
 
 struct AudioBuffer {
   size_t len = 0;
@@ -33,8 +34,7 @@ public:
 
   ~Audio();
 
-  [[maybe_unused]] explicit Audio(const std::string &name,
-                                  AVFormatContext *ctx);
+  [[maybe_unused]] explicit Audio(const std::string &name, AVFormatContext *ctx);
 
   [[maybe_unused]] explicit Audio(AVFormatContext *ctx);
 
@@ -62,6 +62,10 @@ public:
 
   [[nodiscard]] Spec *spec() const;
 
+  static void decodeAAC();
+
+  static void decodeAAC(const std::string &name, Player::ResampleAudioSpec &spec);
+
 private:
   void run();
 
@@ -77,6 +81,8 @@ private:
 
   void initWithFormatContext(AVFormatContext *ctx);
 
+  static int decode(AVCodecContext *ctx, AVPacket *pkt, AVFrame *frame, std::ofstream &output);
+
 private:
   std::string filename_;
 
@@ -84,8 +90,7 @@ private:
 
   std::atomic<bool> playing_{false};
 
-  static SDL_AudioFormat getSDLFormat(uint16_t audioFormat,
-                                      uint16_t bitsPerSample, bool &success);
+  static SDL_AudioFormat getSDLFormat(uint16_t audioFormat, uint16_t bitsPerSample, bool &success);
 
 #ifdef _WIN32
   AudioFormat format_ = FormatS16;
