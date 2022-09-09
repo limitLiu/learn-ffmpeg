@@ -7,3 +7,4 @@ resources/*.pcm
 resources/*.wav
 resources/*.aac
 resources/*.yuv
+resources/*.bmp

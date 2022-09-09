@@ -5,28 +5,21 @@
 
 namespace Player {
 
-enum {
-  WIDTH = 960,
-  HEIGHT = 544,
-};
+class Image;
 
 class Window {
 public:
-  explicit Window(bool isInit = true);
+  Window() = default;
 
   ~Window();
 
-  void render();
+  SDL_Renderer *init();
 
-  bool init();
-
-public:
-  bool inited = false;
+private:
+  void deinit();
 
 private:
   SDL_Window *window_ = nullptr;
-
-  SDL_Renderer *renderer_ = nullptr;
 };
 
 } // namespace Player

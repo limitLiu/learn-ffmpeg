@@ -29,17 +29,19 @@ class App {
 public:
   App();
 
-  explicit App(Window *window);
+  [[maybe_unused]] explicit App(Window *window);
 
   ~App();
 
   void setWindow(Window *window);
 
-  void render();
-
   void handleEvents();
 
   [[nodiscard]] bool running() const { return running_; }
+
+  SDL_Renderer *renderer();
+
+  void render();
 
 private:
   void init();
@@ -47,6 +49,8 @@ private:
   void handleKeydown();
 
   void handleJoystick();
+
+  void handleMouseClick();
 
   void deinit();
 
@@ -62,6 +66,8 @@ private:
   SDL_Joystick *joystick_ = nullptr;
 
   SDL_Event event_{};
+
+  SDL_Renderer *renderer_ = nullptr;
 };
 
 } // namespace Player

@@ -2,17 +2,18 @@
 #define PLAYER_COMMON_H
 
 #include <SDL.h>
+#include <SDL_image.h>
 #include <fstream>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
 #include <libavutil/avutil.h>
 #include <libavutil/imgutils.h>
 #include <libswresample/swresample.h>
-#include <libavcodec/avcodec.h>
 
 #ifdef __cplusplus
 };
@@ -30,6 +31,23 @@ extern "C" {
 #define VIDEO_DEVICE_NAME "0:"
 
 #endif
+
+#define ClearWhite() ClearWindow(255, 255, 255)
+
+#define ClearWindow(R, G, B)                                                                       \
+  if (SDL_SetRenderDrawColor(renderer(), R, G, B, SDL_ALPHA_OPAQUE)) {                       \
+    av_log(nullptr, AV_LOG_ERROR, "%s\n", SDL_GetError());                                         \
+    return;                                                                                        \
+  }                                                                                                \
+  if (SDL_RenderClear(renderer())) {                                                               \
+    av_log(nullptr, AV_LOG_ERROR, "%s\n", SDL_GetError());                                         \
+    return;                                                                                        \
+  }
+
+enum {
+  WIDTH = 960,
+  HEIGHT = 544,
+};
 
 template <typename T> void deletePtr(T **ptr) {
   if (ptr != nullptr && *ptr != nullptr) {
